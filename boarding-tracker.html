@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boarding Budget Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #495057;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .radio-group, .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 5px;
+        }
+
+        .radio-group label, .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .summary-box {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            white-space: pre-line;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 20px;
+            background: #6c757d;
+            font-size: 14px;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+        }
+
+        .expense-type {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .type-shared {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .type-personal {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box h3 {
+            margin-bottom: 10px;
+            color: #1976D2;
+        }
+
+        .info-box ol {
+            margin-left: 20px;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+        }
+
+        .info-box code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .radio-group, .checkbox-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Boarding Budget Tracker
+            <span id="connectionStatus" class="status-badge status-disconnected">Not Connected</span>
+        </h1>
+
+        <!-- Setup Instructions -->
+        <div class="section info-box" id="setupSection">
+            <h3>📝 Google Sheets Setup Instructions</h3>
+            <ol>
+                <li>Create a new Google Sheet</li>
+                <li>Go to <strong>Extensions → Apps Script</strong></li>
+                <li>Delete any existing code and paste the code provided below</li>
+                <li>Click <strong>Deploy → New deployment</strong></li>
+                <li>Choose type: <strong>Web app</strong></li>
+                <li>Set "Who has access" to <strong>Anyone</strong></li>
+                <li>Click <strong>Deploy</strong> and copy the <strong>Web app URL</strong></li>
+                <li>Paste the URL below and click <strong>Connect</strong></li>
+            </ol>
+            
+            <h3 style="margin-top: 15px;">📋 Apps Script Code to Copy:</h3>
+            <textarea id="scriptCode" readonly style="width: 100%; height: 150px; font-family: monospace; font-size: 12px; padding: 10px;">
+function doGet(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
+                SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
+  
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  const expenses = data.slice(1).map(row => ({
+    date: row[0],
+    paidBy: row[1],
+    amount: parseFloat(row[2]) || 0,
+    description: row[3],
+    type: row[4],
+    peopleInvolved: row[5] ? row[5].split(',').map(p => p.trim()) : []
+  }));
+  
+  return ContentService.createTextOutput(JSON.stringify(expenses))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
+                SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
+  
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
+  }
+  
+  const data = JSON.parse(e.postData.contents);
+  
+  if (data.action === 'add') {
+    sheet.appendRow([
+      data.date,
+      data.paidBy,
+      data.amount,
+      data.description,
+      data.type,
+      data.peopleInvolved.join(', ')
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({success: true}));
+  }
+  
+  if (data.action === 'update') {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).clear();
+    data.expenses.forEach(exp => {
+      sheet.appendRow([
+        exp.date,
+        exp.paidBy,
+        exp.amount,
+        exp.description,
+        exp.type,
+        exp.peopleInvolved.join(', ')
+      ]);
+    });
+    return ContentService.createTextOutput(JSON.stringify({success: true}));
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({success: false}));
+}
+            </textarea>
+            <button onclick="copyScriptCode()" style="margin-top: 10px;">Copy Script Code</button>
+        </div>
+
+        <!-- Google Sheets Connection -->
+        <div class="section" id="connectionSection">
+            <h2>🔗 Connect to Google Sheets</h2>
+            <div class="form-group">
+                <label>Google Apps Script Web App URL:</label>
+                <input type="text" id="sheetUrl" placeholder="Paste your deployment URL here">
+            </div>
+            <div class="btn-group">
+                <button id="connectBtn" onclick="connectToSheet()">Connect to Sheet</button>
+                <button class="btn-danger" onclick="disconnectSheet()">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Add Expense Section -->
+        <div class="section">
+            <h2>Add Expense</h2>
+            <div class="form-group">
+                <label>Date:</label>
+                <input type="date" id="expenseDate">
+            </div>
+
+            <div class="form-group">
+                <label>Paid by:</label>
+                <select id="paidBy">
+                    <option>Vihandu</option>
+                    <option>Tharusha</option>
+                    <option>Charith</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Amount (LKR):</label>
+                <input type="number" id="amount" placeholder="Enter amount" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Description:</label>
+                <input type="text" id="description" placeholder="e.g., Food, Transport">
+            </div>
+
+            <div class="form-group">
+                <label>Expense Type:</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="expenseType" value="shared" checked>
+                        Shared
+                    </label>
+                    <label>
+                        <input type="radio" name="expenseType" value="personal">
+                        Personal
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" id="peopleInvolvedSection">
+                <label>People Involved:</label>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" class="person-check" value="Vihandu" checked>
+                        Vihandu
+                    </label>
+                    <label>
+                        <input type="checkbox" class="person-check" value="Tharusha" checked>
+                        Tharusha
+                    </label>
+                    <label>
+                        <input type="checkbox" class="person-check" value="Charith" checked>
+                        Charith
+                    </label>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button onclick="addExpense()">Add Expense</button>
+            </div>
+        </div>
+
+        <!-- Expense History Section -->
+        <div class="section">
+            <h2>Expense History</h2>
+            <div class="table-container">
+                <table id="expenseTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Paid By</th>
+                            <th>Amount (LKR)</th>
+                            <th>Description</th>
+                            <th>Type</th>
+                            <th>People Involved</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="section">
+            <h2>Summary</h2>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="updateSummary('today')">Today</button>
+                <button class="filter-btn" onclick="updateSummary('month')">This Month</button>
+                <button class="filter-btn" onclick="updateSummary('all')">All Time</button>
+            </div>
+            <div class="summary-box" id="summaryBox"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="btn-group">
+            <button onclick="refreshData()">Refresh from Sheet</button>
+            <button class="btn-danger" onclick="clearAllData()">Clear All Data</button>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Expense</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            
+            <div class="form-group">
+                <label>Date:</label>
+                <input type="date" id="editDate">
+            </div>
+
+            <div class="form-group">
+                <label>Paid by:</label>
+                <select id="editPaidBy">
+                    <option>Vihandu</option>
+                    <option>Tharusha</option>
+                    <option>Charith</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Amount (LKR):</label>
+                <input type="number" id="editAmount" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Description:</label>
+                <input type="text" id="editDescription">
+            </div>
+
+            <div class="form-group">
+                <label>Expense Type:</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="editExpenseType" value="shared">
+                        Shared
+                    </label>
+                    <label>
+                        <input type="radio" name="editExpenseType" value="personal">
+                        Personal
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" id="editPeopleSection">
+                <label>People Involved:</label>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" class="edit-person-check" value="Vihandu">
+                        Vihandu
+                    </label>
+                    <label>
+                        <input type="checkbox" class="edit-person-check" value="Tharusha">
+                        Tharusha
+                    </label>
+                    <label>
+                        <input type="checkbox" class="edit-person-check" value="Charith">
+                        Charith
+                    </label>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button onclick="saveEdit()">Save Changes</button>
+                <button class="btn-danger" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const people = ["Vihandu", "Tharusha", "Charith"];
+        let expenses = [];
+        let currentFilter = 'today';
+        let editingIndex = -1;
+        let sheetUrl = '';
+        let isConnected = false;
+
+        // Set today's date
+        document.getElementById('expenseDate').valueAsDate = new Date();
+
+        // Load saved sheet URL
+        loadSheetUrl();
+
+        // Handle expense type change
+        document.querySelectorAll('input[name="expenseType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const peopleSection = document.getElementById('peopleInvolvedSection');
+                peopleSection.style.display = this.value === 'shared' ? 'block' : 'none';
+            });
+        });
+
+        document.querySelectorAll('input[name="editExpenseType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const peopleSection = document.getElementById('editPeopleSection');
+                peopleSection.style.display = this.value === 'shared' ? 'block' : 'none';
+            });
+        });
+
+        function copyScriptCode() {
+            const scriptCode = document.getElementById('scriptCode');
+            scriptCode.select();
+            document.execCommand('copy');
+            alert('Script code copied! Paste it into Google Apps Script.');
+        }
+
+        function loadSheetUrl() {
+            const saved = localStorage.getItem('sheetUrl');
+            if (saved) {
+                sheetUrl = saved;
+                document.getElementById('sheetUrl').value = saved;
+                connectToSheet(true); // Pass true to skip alert
+            }
+        }
+
+        async function connectToSheet(silent = false) {
+            const urlInput = document.getElementById('sheetUrl').value.trim();
+            if (!urlInput) {
+                if (!silent) alert('Please enter the Google Apps Script URL');
+                return;
+            }
+
+            sheetUrl = urlInput;
+            localStorage.setItem('sheetUrl', sheetUrl);
+
+            try {
+                const response = await fetch(sheetUrl);
+                if (response.ok) {
+                    isConnected = true;
+                    updateConnectionStatus(true);
+                    await loadFromSheet();
+                    if (!silent) alert('Successfully connected to Google Sheets!');
+                } else {
+                    throw new Error('Connection failed');
+                }
+            } catch (error) {
+                isConnected = false;
+                updateConnectionStatus(false);
+                if (!silent) alert('Failed to connect to Google Sheets. Please check the URL and deployment settings.');
+            }
+        }
+
+        function disconnectSheet() {
+            sheetUrl = '';
+            isConnected = false;
+            localStorage.removeItem('sheetUrl');
+            document.getElementById('sheetUrl').value = '';
+            updateConnectionStatus(false);
+            alert('Disconnected from Google Sheets');
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusBadge = document.getElementById('connectionStatus');
+            const setupSection = document.getElementById('setupSection');
+            const connectionSection = document.getElementById('connectionSection');
+            
+            if (connected) {
+                statusBadge.textContent = 'Connected';
+                statusBadge.className = 'status-badge status-connected';
+                setupSection.style.display = 'none';
+                connectionSection.style.display = 'none';
+            } else {
+                statusBadge.textContent = 'Not Connected';
+                statusBadge.className = 'status-badge status-disconnected';
+                setupSection.style.display = 'block';
+                connectionSection.style.display = 'block';
+            }
+        }
+
+        async function loadFromSheet() {
+            if (!isConnected || !sheetUrl) {
+                return;
+            }
+
+            try {
+                const response = await fetch(sheetUrl);
+                const data = await response.json();
+                expenses = data;
+                refreshData();
+            } catch (error) {
+                console.error('Error loading from sheet:', error);
+            }
+        }
+
+        async function saveToSheet(expense) {
+            if (!isConnected || !sheetUrl) {
+                alert('Please connect to Google Sheets first');
+                return false;
+            }
+
+            try {
+                const response = await fetch(sheetUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'add',
+                        ...expense
+                    })
+                });
+                return response.ok;
+            } catch (error) {
+                console.error('Error saving to sheet:', error);
+                return false;
+            }
+        }
+
+        async function updateSheet() {
+            if (!isConnected || !sheetUrl) {
+                return false;
+            }
+
+            try {
+                const response = await fetch(sheetUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'update',
+                        expenses: expenses
+                    })
+                });
+                return response.ok;
+            } catch (error) {
+                console.error('Error updating sheet:', error);
+                return false;
+            }
+        }
+
+        async function addExpense() {
+            const date = document.getElementById('expenseDate').value;
+            const paidBy = document.getElementById('paidBy').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value || "No description";
+            const expenseType = document.querySelector('input[name="expenseType"]:checked').value;
+
+            if (!date || !amount || amount <= 0) {
+                alert("Please fill in all required fields!");
+                return;
+            }
+
+            let peopleInvolved = [];
+            if (expenseType === 'shared') {
+                const checkboxes = document.querySelectorAll('.person-check:checked');
+                peopleInvolved = Array.from(checkboxes).map(cb => cb.value);
+                
+                if (peopleInvolved.length === 0) {
+                    alert("Please select at least one person!");
+                    return;
+                }
+            } else {
+                peopleInvolved = [paidBy];
+            }
+
+            const expense = {
+                date: date,
+                paidBy: paidBy,
+                amount: amount,
+                description: description,
+                type: expenseType,
+                peopleInvolved: peopleInvolved
+            };
+
+            expenses.push(expense);
+            
+            if (isConnected) {
+                const success = await saveToSheet(expense);
+                if (!success) {
+                    alert('Failed to save to Google Sheets, but saved locally');
+                }
+            }
+
+            refreshData();
+
+            // Clear form
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+            
+            alert("Expense added successfully!");
+        }
+
+        function editExpense(index) {
+            editingIndex = index;
+            const exp = expenses[index];
+
+            document.getElementById('editDate').value = exp.date;
+            document.getElementById('editPaidBy').value = exp.paidBy;
+            document.getElementById('editAmount').value = exp.amount;
+            document.getElementById('editDescription').value = exp.description;
+            
+            const typeRadio = document.querySelector(`input[name="editExpenseType"][value="${exp.type}"]`);
+            typeRadio.checked = true;
+            
+            const peopleSection = document.getElementById('editPeopleSection');
+            peopleSection.style.display = exp.type === 'shared' ? 'block' : 'none';
+
+            document.querySelectorAll('.edit-person-check').forEach(cb => {
+                cb.checked = exp.peopleInvolved.includes(cb.value);
+            });
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        async function saveEdit() {
+            const date = document.getElementById('editDate').value;
+            const paidBy = document.getElementById('editPaidBy').value;
+            const amount = parseFloat(document.getElementById('editAmount').value);
+            const description = document.getElementById('editDescription').value;
+            const expenseType = document.querySelector('input[name="editExpenseType"]:checked').value;
+
+            if (!date || !amount || amount <= 0) {
+                alert("Please fill in all required fields!");
+                return;
+            }
+
+            let peopleInvolved = [];
+            if (expenseType === 'shared') {
+                const checkboxes = document.querySelectorAll('.edit-person-check:checked');
+                peopleInvolved = Array.from(checkboxes).map(cb => cb.value);
+                
+                if (peopleInvolved.length === 0) {
+                    alert("Please select at least one person!");
+                    return;
+                }
+            } else {
+                peopleInvolved = [paidBy];
+            }
+
+            expenses[editingIndex] = {
+                date: date,
+                paidBy: paidBy,
+                amount: amount,
+                description: description,
+                type: expenseType,
+                peopleInvolved: peopleInvolved
+            };
+
+            if (isConnected) {
+                await updateSheet();
+            }
+
+            refreshData();
+            closeEditModal();
+            alert("Expense updated successfully!");
+        }
+
+        async function deleteExpense(index) {
+            if (confirm("Are you sure you want to delete this expense?")) {
+                expenses.splice(index, 1);
+                
+                if (isConnected) {
+                    await updateSheet();
+                }
+                
+                refreshData();
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editingIndex = -1;
+        }
+
+        function refreshData() {
+            const tbody = document.getElementById('expenseTableBody');
+            tbody.innerHTML = '';
+
+            expenses.forEach((exp, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${exp.date}</td>
+                    <td>${exp.paidBy}</td>
+                    <td>${exp.amount.toFixed(2)}</td>
+                    <td>${exp.description}</td>
+                    <td><span class="expense-type type-${exp.type}">${exp.type}</span></td>
+                    <td>${exp.peopleInvolved.join(', ')}</td>
+                    <td>
+                        <button class="btn-warning btn-small" onclick="editExpense(${index})">Edit</button>
+                        <button class="btn-danger btn-small" onclick="deleteExpense(${index})">Delete</button>
+                    </td>
+                `;
+            });
+
+            updateSummary(currentFilter);
+        }
+
+        function updateSummary(filter) {
+            currentFilter = filter;
+            
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = today.substring(0, 7);
+
+            let filteredExpenses = expenses.filter(exp => {
+                if (filter === 'today') return exp.date === today;
+                if (filter === 'month') return exp.date.startsWith(currentMonth);
+                return true;
+            });
+
+            // Calculate actual costs and balances
+            const actualCost = {};
+            const totalPaid = {};
+            const personal = {};
+            const balances = {};
+
+            people.forEach(person => {
+                actualCost[person] = 0;
+                totalPaid[person] = 0;
+                personal[person] = 0;
+                balances[person] = {};
+                people.forEach(other => {
+                    balances[person][other] = 0;
+                });
+            });
+
+            filteredExpenses.forEach(exp => {
+                const { paidBy, amount, type, peopleInvolved } = exp;
+
+                totalPaid[paidBy] += amount;
+
+                if (type === 'personal') {
+                    personal[paidBy] += amount;
+                    actualCost[paidBy] += amount;
+                } else {
+                    const share = amount / peopleInvolved.length;
+
+                    peopleInvolved.forEach(person => {
+                        actualCost[person] += share;
+                    });
+
+                    peopleInvolved.forEach(person => {
+                        if (person !== paidBy) {
+                            balances[person][paidBy] += share;
+                            balances[paidBy][person] -= share;
+                        }
+                    });
+                }
+            });
+
+            // Display summary
+            const periodText = filter === 'today' ? 'Today' : 
+                              filter === 'month' ? 'This Month' : 'All Time';
+            
+            let summary = `=== Summary for ${periodText} ===\n\n`;
+            
+            summary += `Actual Cost (Personal Share):\n`;
+            people.forEach(person => {
+                summary += `  ${person}: ${actualCost[person].toFixed(2)} LKR\n`;
+            });
+
+            summary += `\nTotal Paid:\n`;
+            people.forEach(person => {
+                summary += `  ${person}: ${totalPaid[person].toFixed(2)} LKR\n`;
+            });
+
+            summary += `\nPersonal Expenses:\n`;
+            people.forEach(person => {
+                summary += `  ${person}: ${personal[person].toFixed(2)} LKR\n`;
+            });
+
+            summary += `\nSettlements Needed:\n`;
+            let hasSettlements = false;
+            people.forEach(person => {
+                people.forEach(otherPerson => {
+                    if (person !== otherPerson && balances[person][otherPerson] > 0.01) {
+                        summary += `  ${person} owes ${otherPerson}: ${balances[person][otherPerson].toFixed(2)} LKR\n`;
+                        hasSettlements = true;
+                    }
+                });
+            });
+
+            if (!hasSettlements) {
+                summary += `  No settlements needed - all balanced!\n`;
+            }
+
+            document.getElementById('summaryBox').textContent = summary;
+        }
+
+        async function clearAllData() {
+            if (confirm("Are you sure you want to clear all data? This cannot be undone!")) {
+                expenses = [];
+                
+                if (isConnected) {
+                    await updateSheet();
+                }
+                
+                refreshData();
+                alert("All data cleared!");
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                closeEditModal();
+            }
+        }
+    </script>
+</body>
+</html>
