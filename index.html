@@ -345,38 +345,61 @@
             <h3 style="margin-top: 15px;">📋 Apps Script Code to Copy:</h3>
             <textarea id="scriptCode" readonly style="width: 100%; height: 150px; font-family: monospace; font-size: 12px; padding: 10px;">
 function doGet(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
-                SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
+  const type = e.parameter.type || 'expenses';
   
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
+  if (type === 'expenses') {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
+                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
+    
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const expenses = data.slice(1).map(row => ({
+      date: row[0],
+      paidBy: row[1],
+      amount: parseFloat(row[2]) || 0,
+      description: row[3],
+      type: row[4],
+      peopleInvolved: row[5] ? row[5].split(',').map(p => p.trim()) : []
+    }));
+    
+    return ContentService.createTextOutput(JSON.stringify(expenses))
+      .setMimeType(ContentService.MimeType.JSON);
+  } else if (type === 'debts') {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Debts') || 
+                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Debts');
+    
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Date', 'From', 'To', 'Amount', 'Description']);
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const debts = data.slice(1).map(row => ({
+      date: row[0],
+      from: row[1],
+      to: row[2],
+      amount: parseFloat(row[3]) || 0,
+      description: row[4]
+    }));
+    
+    return ContentService.createTextOutput(JSON.stringify(debts))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  
-  const data = sheet.getDataRange().getValues();
-  const expenses = data.slice(1).map(row => ({
-    date: row[0],
-    paidBy: row[1],
-    amount: parseFloat(row[2]) || 0,
-    description: row[3],
-    type: row[4],
-    peopleInvolved: row[5] ? row[5].split(',').map(p => p.trim()) : []
-  }));
-  
-  return ContentService.createTextOutput(JSON.stringify(expenses))
-    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
-                SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
-  
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
-  }
-  
   const data = JSON.parse(e.postData.contents);
   
   if (data.action === 'add') {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
+                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
+    
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
+    }
+    
     sheet.appendRow([
       data.date,
       data.paidBy,
@@ -388,10 +411,36 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({success: true}));
   }
   
+  if (data.action === 'addDebt') {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Debts') || 
+                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Debts');
+    
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Date', 'From', 'To', 'Amount', 'Description']);
+    }
+    
+    sheet.appendRow([
+      data.date,
+      data.from,
+      data.to,
+      data.amount,
+      data.description
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({success: true}));
+  }
+  
   if (data.action === 'update') {
-    sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).clear();
+    const expSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
+                     SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
+    
+    if (expSheet.getLastRow() === 0) {
+      expSheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
+    } else {
+      expSheet.getRange(2, 1, expSheet.getLastRow() - 1, 6).clear();
+    }
+    
     data.expenses.forEach(exp => {
-      sheet.appendRow([
+      expSheet.appendRow([
         exp.date,
         exp.paidBy,
         exp.amount,
@@ -400,6 +449,28 @@ function doPost(e) {
         exp.peopleInvolved.join(', ')
       ]);
     });
+    
+    const debtSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Debts') || 
+                      SpreadsheetApp.getActiveSpreadsheet().insertSheet('Debts');
+    
+    if (debtSheet.getLastRow() === 0) {
+      debtSheet.appendRow(['Date', 'From', 'To', 'Amount', 'Description']);
+    } else {
+      debtSheet.getRange(2, 1, debtSheet.getLastRow() - 1, 5).clear();
+    }
+    
+    if (data.debts) {
+      data.debts.forEach(debt => {
+        debtSheet.appendRow([
+          debt.date,
+          debt.from,
+          debt.to,
+          debt.amount,
+          debt.description
+        ]);
+      });
+    }
+    
     return ContentService.createTextOutput(JSON.stringify({success: true}));
   }
   
@@ -419,6 +490,47 @@ function doPost(e) {
             <div class="btn-group">
                 <button id="connectBtn" onclick="connectToSheet()">Connect to Sheet</button>
                 <button class="btn-danger" onclick="disconnectSheet()">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Add Debt/Payment Section -->
+        <div class="section">
+            <h2>💰 Record Debt/Payment</h2>
+            <div class="form-group">
+                <label>Date:</label>
+                <input type="date" id="debtDate">
+            </div>
+
+            <div class="form-group">
+                <label>From (Giver):</label>
+                <select id="debtFrom">
+                    <option>Vihandu</option>
+                    <option>Tharusha</option>
+                    <option>Charith</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>To (Receiver):</label>
+                <select id="debtTo">
+                    <option>Vihandu</option>
+                    <option>Tharusha</option>
+                    <option>Charith</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Amount (LKR):</label>
+                <input type="number" id="debtAmount" placeholder="Enter amount" step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Description:</label>
+                <input type="text" id="debtDescription" placeholder="e.g., Loan, Payment">
+            </div>
+
+            <div class="btn-group">
+                <button onclick="addDebt()">Record Debt</button>
             </div>
         </div>
 
@@ -600,6 +712,7 @@ function doPost(e) {
     <script>
         const people = ["Vihandu", "Tharusha", "Charith"];
         let expenses = [];
+        let debts = [];
         let currentFilter = 'today';
         let editingIndex = -1;
         let sheetUrl = '';
@@ -607,6 +720,7 @@ function doPost(e) {
 
         // Set today's date
         document.getElementById('expenseDate').valueAsDate = new Date();
+        document.getElementById('debtDate').valueAsDate = new Date();
 
         // Load saved sheet URL
         loadSheetUrl();
@@ -702,12 +816,27 @@ function doPost(e) {
             }
 
             try {
-                const response = await fetch(sheetUrl);
-                const data = await response.json();
-                expenses = data;
+                const response = await fetch(sheetUrl + '?type=expenses');
+                const expData = await response.json();
+                expenses = expData;
+                
+                const debtResponse = await fetch(sheetUrl + '?type=debts');
+                const debtData = await debtResponse.json();
+                debts = debtData;
+                
                 refreshData();
             } catch (error) {
                 console.error('Error loading from sheet:', error);
+                // Try loading expenses only (for backward compatibility)
+                try {
+                    const response = await fetch(sheetUrl);
+                    const data = await response.json();
+                    expenses = data;
+                    debts = [];
+                    refreshData();
+                } catch (e) {
+                    console.error('Error:', e);
+                }
             }
         }
 
@@ -742,12 +871,76 @@ function doPost(e) {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'update',
-                        expenses: expenses
+                        expenses: expenses,
+                        debts: debts
                     })
                 });
                 return response.ok;
             } catch (error) {
                 console.error('Error updating sheet:', error);
+                return false;
+            }
+        }
+
+        async function addDebt() {
+            const date = document.getElementById('debtDate').value;
+            const from = document.getElementById('debtFrom').value;
+            const to = document.getElementById('debtTo').value;
+            const amount = parseFloat(document.getElementById('debtAmount').value);
+            const description = document.getElementById('debtDescription').value || "Money transfer";
+
+            if (!date || !amount || amount <= 0) {
+                alert("Please fill in all required fields!");
+                return;
+            }
+
+            if (from === to) {
+                alert("Cannot record debt to the same person!");
+                return;
+            }
+
+            const debt = {
+                date: date,
+                from: from,
+                to: to,
+                amount: amount,
+                description: description
+            };
+
+            debts.push(debt);
+            
+            if (isConnected) {
+                const success = await saveDebtToSheet(debt);
+                if (!success) {
+                    alert('Failed to save to Google Sheets, but saved locally');
+                }
+            }
+
+            refreshData();
+
+            // Clear form
+            document.getElementById('debtAmount').value = '';
+            document.getElementById('debtDescription').value = '';
+            
+            alert("Debt recorded successfully!");
+        }
+
+        async function saveDebtToSheet(debt) {
+            if (!isConnected || !sheetUrl) {
+                return false;
+            }
+
+            try {
+                const response = await fetch(sheetUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'addDebt',
+                        ...debt
+                    })
+                });
+                return response.ok;
+            } catch (error) {
+                console.error('Error saving debt to sheet:', error);
                 return false;
             }
         }
@@ -967,6 +1160,19 @@ function doPost(e) {
                 }
             });
 
+            // Add direct debts to balances
+            const filteredDebts = debts.filter(debt => {
+                if (filter === 'today') return debt.date === today;
+                if (filter === 'month') return debt.date.startsWith(currentMonth);
+                return true;
+            });
+
+            filteredDebts.forEach(debt => {
+                // "from" gave money to "to", so "to" owes "from"
+                balances[debt.to][debt.from] += debt.amount;
+                balances[debt.from][debt.to] -= debt.amount;
+            });
+
             // Display summary
             const periodText = filter === 'today' ? 'Today' : 
                               filter === 'month' ? 'This Month' : 'All Time';
@@ -987,6 +1193,15 @@ function doPost(e) {
             people.forEach(person => {
                 summary += `  ${person}: ${personal[person].toFixed(2)} LKR\n`;
             });
+
+            summary += `\nDirect Debts/Payments:\n`;
+            if (filteredDebts.length > 0) {
+                filteredDebts.forEach(debt => {
+                    summary += `  ${debt.from} gave ${debt.to}: ${debt.amount.toFixed(2)} LKR (${debt.description})\n`;
+                });
+            } else {
+                summary += `  No direct debts recorded\n`;
+            }
 
             summary += `\nSettlements Needed:\n`;
             let hasSettlements = false;
