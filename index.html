@@ -633,6 +633,7 @@ function doPost(e) {
         <!-- Action Buttons -->
         <div class="btn-group">
             <button onclick="refreshData()">Refresh from Sheet</button>
+            <button onclick="testConnection()">Test Connection</button>
             <button class="btn-danger" onclick="clearAllData()">Clear All Data</button>
         </div>
     </div>
@@ -855,13 +856,26 @@ function doPost(e) {
             }
 
             try {
-                const response = await fetch(sheetUrl + '?type=expenses');
-                const expData = await response.json();
-                expenses = expData;
+                // Load expenses
+                const expResponse = await fetch(sheetUrl + '?type=expenses');
+                if (expResponse.ok) {
+                    const expData = await expResponse.json();
+                    expenses = Array.isArray(expData) ? expData : [];
+                } else {
+                    expenses = [];
+                }
                 
+                // Load debts
                 const debtResponse = await fetch(sheetUrl + '?type=debts');
-                const debtData = await debtResponse.json();
-                debts = debtData;
+                if (debtResponse.ok) {
+                    const debtData = await debtResponse.json();
+                    debts = Array.isArray(debtData) ? debtData : [];
+                } else {
+                    debts = [];
+                }
+                
+                console.log('Loaded expenses:', expenses.length);
+                console.log('Loaded debts:', debts.length);
                 
                 refreshData();
             } catch (error) {
@@ -870,11 +884,13 @@ function doPost(e) {
                 try {
                     const response = await fetch(sheetUrl);
                     const data = await response.json();
-                    expenses = data;
+                    expenses = Array.isArray(data) ? data : [];
                     debts = [];
                     refreshData();
                 } catch (e) {
                     console.error('Error:', e);
+                    expenses = [];
+                    debts = [];
                 }
             }
         }
@@ -1360,6 +1376,45 @@ function doPost(e) {
             }
 
             document.getElementById('summaryBox').textContent = summary;
+        }
+
+        async function testConnection() {
+            if (!isConnected || !sheetUrl) {
+                alert('Not connected to Google Sheets!');
+                return;
+            }
+
+            let message = 'Connection Test Results:\n\n';
+
+            try {
+                // Test expenses
+                const expResponse = await fetch(sheetUrl + '?type=expenses');
+                message += `Expenses Sheet: ${expResponse.ok ? '✅ OK' : '❌ Failed'}\n`;
+                if (expResponse.ok) {
+                    const expData = await expResponse.json();
+                    message += `  - Found ${expData.length} expenses\n`;
+                }
+            } catch (error) {
+                message += `Expenses Sheet: ❌ Error - ${error.message}\n`;
+            }
+
+            try {
+                // Test debts
+                const debtResponse = await fetch(sheetUrl + '?type=debts');
+                message += `Debts Sheet: ${debtResponse.ok ? '✅ OK' : '❌ Failed'}\n`;
+                if (debtResponse.ok) {
+                    const debtData = await debtResponse.json();
+                    message += `  - Found ${debtData.length} debts\n`;
+                }
+            } catch (error) {
+                message += `Debts Sheet: ❌ Error - ${error.message}\n`;
+            }
+
+            message += `\nCurrent data in app:\n`;
+            message += `- Expenses: ${expenses.length}\n`;
+            message += `- Debts: ${debts.length}`;
+
+            alert(message);
         }
 
         async function clearAllData() {
