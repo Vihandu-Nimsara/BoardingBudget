@@ -877,7 +877,7 @@ function doPost(e) {
                 console.log('Loaded expenses:', expenses.length);
                 console.log('Loaded debts:', debts.length);
                 
-                refreshData();
+                updateDisplay();
             } catch (error) {
                 console.error('Error loading from sheet:', error);
                 // Try loading expenses only (for backward compatibility)
@@ -886,7 +886,7 @@ function doPost(e) {
                     const data = await response.json();
                     expenses = Array.isArray(data) ? data : [];
                     debts = [];
-                    refreshData();
+                    updateDisplay();
                 } catch (e) {
                     console.error('Error:', e);
                     expenses = [];
@@ -971,7 +971,7 @@ function doPost(e) {
                 }
             }
 
-            refreshData();
+            updateDisplay();
 
             // Clear form
             document.getElementById('debtAmount').value = '';
@@ -1043,7 +1043,7 @@ function doPost(e) {
                 }
             }
 
-            refreshData();
+            updateDisplay();
 
             // Clear form
             document.getElementById('amount').value = '';
@@ -1161,7 +1161,7 @@ function doPost(e) {
                 await updateSheet();
             }
 
-            refreshData();
+            updateDisplay();
             closeEditModal();
             alert("Updated successfully!");
         }
@@ -1174,7 +1174,7 @@ function doPost(e) {
                     await updateSheet();
                 }
                 
-                refreshData();
+                updateDisplay();
             }
         }
 
@@ -1186,7 +1186,7 @@ function doPost(e) {
                     await updateSheet();
                 }
                 
-                refreshData();
+                updateDisplay();
             }
         }
 
@@ -1196,7 +1196,17 @@ function doPost(e) {
             editingType = '';
         }
 
-        function refreshData() {
+        async function refreshData() {
+            // If connected to sheet, reload from sheet
+            if (isConnected && sheetUrl) {
+                await loadFromSheet();
+            } else {
+                // Just refresh the display with current data
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
             const tbody = document.getElementById('expenseTableBody');
             tbody.innerHTML = '';
 
@@ -1420,12 +1430,13 @@ function doPost(e) {
         async function clearAllData() {
             if (confirm("Are you sure you want to clear all data? This cannot be undone!")) {
                 expenses = [];
+                debts = [];
                 
                 if (isConnected) {
                     await updateSheet();
                 }
                 
-                refreshData();
+                updateDisplay();
                 alert("All data cleared!");
             }
         }
