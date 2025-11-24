@@ -345,61 +345,38 @@
             <h3 style="margin-top: 15px;">📋 Apps Script Code to Copy:</h3>
             <textarea id="scriptCode" readonly style="width: 100%; height: 150px; font-family: monospace; font-size: 12px; padding: 10px;">
 function doGet(e) {
-  const type = e.parameter.type || 'expenses';
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
+                SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
   
-  if (type === 'expenses') {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
-                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
-    
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    const expenses = data.slice(1).map(row => ({
-      date: row[0],
-      paidBy: row[1],
-      amount: parseFloat(row[2]) || 0,
-      description: row[3],
-      type: row[4],
-      peopleInvolved: row[5] ? row[5].split(',').map(p => p.trim()) : []
-    }));
-    
-    return ContentService.createTextOutput(JSON.stringify(expenses))
-      .setMimeType(ContentService.MimeType.JSON);
-  } else if (type === 'debts') {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Debts') || 
-                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Debts');
-    
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Date', 'From', 'To', 'Amount', 'Description']);
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    const debts = data.slice(1).map(row => ({
-      date: row[0],
-      from: row[1],
-      to: row[2],
-      amount: parseFloat(row[3]) || 0,
-      description: row[4]
-    }));
-    
-    return ContentService.createTextOutput(JSON.stringify(debts))
-      .setMimeType(ContentService.MimeType.JSON);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
   }
+  
+  const data = sheet.getDataRange().getValues();
+  const expenses = data.slice(1).map(row => ({
+    date: row[0],
+    paidBy: row[1],
+    amount: parseFloat(row[2]) || 0,
+    description: row[3],
+    type: row[4],
+    peopleInvolved: row[5] ? row[5].split(',').map(p => p.trim()) : []
+  }));
+  
+  return ContentService.createTextOutput(JSON.stringify(expenses))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
+                SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
+  
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
+  }
+  
   const data = JSON.parse(e.postData.contents);
   
   if (data.action === 'add') {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
-                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
-    
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
-    }
-    
     sheet.appendRow([
       data.date,
       data.paidBy,
@@ -411,36 +388,10 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({success: true}));
   }
   
-  if (data.action === 'addDebt') {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Debts') || 
-                  SpreadsheetApp.getActiveSpreadsheet().insertSheet('Debts');
-    
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Date', 'From', 'To', 'Amount', 'Description']);
-    }
-    
-    sheet.appendRow([
-      data.date,
-      data.from,
-      data.to,
-      data.amount,
-      data.description
-    ]);
-    return ContentService.createTextOutput(JSON.stringify({success: true}));
-  }
-  
   if (data.action === 'update') {
-    const expSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Expenses') || 
-                     SpreadsheetApp.getActiveSpreadsheet().insertSheet('Expenses');
-    
-    if (expSheet.getLastRow() === 0) {
-      expSheet.appendRow(['Date', 'Paid By', 'Amount', 'Description', 'Type', 'People Involved']);
-    } else {
-      expSheet.getRange(2, 1, expSheet.getLastRow() - 1, 6).clear();
-    }
-    
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).clear();
     data.expenses.forEach(exp => {
-      expSheet.appendRow([
+      sheet.appendRow([
         exp.date,
         exp.paidBy,
         exp.amount,
@@ -449,28 +400,6 @@ function doPost(e) {
         exp.peopleInvolved.join(', ')
       ]);
     });
-    
-    const debtSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Debts') || 
-                      SpreadsheetApp.getActiveSpreadsheet().insertSheet('Debts');
-    
-    if (debtSheet.getLastRow() === 0) {
-      debtSheet.appendRow(['Date', 'From', 'To', 'Amount', 'Description']);
-    } else {
-      debtSheet.getRange(2, 1, debtSheet.getLastRow() - 1, 5).clear();
-    }
-    
-    if (data.debts) {
-      data.debts.forEach(debt => {
-        debtSheet.appendRow([
-          debt.date,
-          debt.from,
-          debt.to,
-          debt.amount,
-          debt.description
-        ]);
-      });
-    }
-    
     return ContentService.createTextOutput(JSON.stringify({success: true}));
   }
   
@@ -490,47 +419,6 @@ function doPost(e) {
             <div class="btn-group">
                 <button id="connectBtn" onclick="connectToSheet()">Connect to Sheet</button>
                 <button class="btn-danger" onclick="disconnectSheet()">Disconnect</button>
-            </div>
-        </div>
-
-        <!-- Add Debt/Payment Section -->
-        <div class="section">
-            <h2>💰 Record Debt/Payment</h2>
-            <div class="form-group">
-                <label>Date:</label>
-                <input type="date" id="debtDate">
-            </div>
-
-            <div class="form-group">
-                <label>From (Giver):</label>
-                <select id="debtFrom">
-                    <option>Vihandu</option>
-                    <option>Tharusha</option>
-                    <option>Charith</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>To (Receiver):</label>
-                <select id="debtTo">
-                    <option>Vihandu</option>
-                    <option>Tharusha</option>
-                    <option>Charith</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Amount (LKR):</label>
-                <input type="number" id="debtAmount" placeholder="Enter amount" step="0.01">
-            </div>
-
-            <div class="form-group">
-                <label>Description:</label>
-                <input type="text" id="debtDescription" placeholder="e.g., Loan, Payment">
-            </div>
-
-            <div class="btn-group">
-                <button onclick="addDebt()">Record Debt</button>
             </div>
         </div>
 
@@ -600,16 +488,17 @@ function doPost(e) {
 
         <!-- Expense History Section -->
         <div class="section">
-            <h2>Transaction History</h2>
+            <h2>Expense History</h2>
             <div class="table-container">
                 <table id="expenseTable">
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Type</th>
-                            <th>Details</th>
+                            <th>Paid By</th>
                             <th>Amount (LKR)</th>
                             <th>Description</th>
+                            <th>Type</th>
+                            <th>People Involved</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -633,7 +522,6 @@ function doPost(e) {
         <!-- Action Buttons -->
         <div class="btn-group">
             <button onclick="refreshData()">Refresh from Sheet</button>
-            <button onclick="testConnection()">Test Connection</button>
             <button class="btn-danger" onclick="clearAllData()">Clear All Data</button>
         </div>
     </div>
@@ -642,102 +530,63 @@ function doPost(e) {
     <div id="editModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Edit Transaction</h2>
+                <h2>Edit Expense</h2>
                 <span class="close" onclick="closeEditModal()">&times;</span>
             </div>
             
-            <!-- Expense Edit Fields -->
-            <div id="editExpenseFields">
-                <div class="form-group">
-                    <label>Date:</label>
-                    <input type="date" id="editDate">
-                </div>
+            <div class="form-group">
+                <label>Date:</label>
+                <input type="date" id="editDate">
+            </div>
 
-                <div class="form-group">
-                    <label>Paid by:</label>
-                    <select id="editPaidBy">
-                        <option>Vihandu</option>
-                        <option>Tharusha</option>
-                        <option>Charith</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label>Paid by:</label>
+                <select id="editPaidBy">
+                    <option>Vihandu</option>
+                    <option>Tharusha</option>
+                    <option>Charith</option>
+                </select>
+            </div>
 
-                <div class="form-group">
-                    <label>Amount (LKR):</label>
-                    <input type="number" id="editAmount" step="0.01">
-                </div>
+            <div class="form-group">
+                <label>Amount (LKR):</label>
+                <input type="number" id="editAmount" step="0.01">
+            </div>
 
-                <div class="form-group">
-                    <label>Description:</label>
-                    <input type="text" id="editDescription">
-                </div>
+            <div class="form-group">
+                <label>Description:</label>
+                <input type="text" id="editDescription">
+            </div>
 
-                <div class="form-group">
-                    <label>Expense Type:</label>
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="editExpenseType" value="shared">
-                            Shared
-                        </label>
-                        <label>
-                            <input type="radio" name="editExpenseType" value="personal">
-                            Personal
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-group" id="editPeopleSection">
-                    <label>People Involved:</label>
-                    <div class="checkbox-group">
-                        <label>
-                            <input type="checkbox" class="edit-person-check" value="Vihandu">
-                            Vihandu
-                        </label>
-                        <label>
-                            <input type="checkbox" class="edit-person-check" value="Tharusha">
-                            Tharusha
-                        </label>
-                        <label>
-                            <input type="checkbox" class="edit-person-check" value="Charith">
-                            Charith
-                        </label>
-                    </div>
+            <div class="form-group">
+                <label>Expense Type:</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="editExpenseType" value="shared">
+                        Shared
+                    </label>
+                    <label>
+                        <input type="radio" name="editExpenseType" value="personal">
+                        Personal
+                    </label>
                 </div>
             </div>
 
-            <!-- Debt Edit Fields -->
-            <div id="editDebtFields" style="display: none;">
-                <div class="form-group">
-                    <label>Date:</label>
-                    <input type="date" id="editDebtDate">
-                </div>
-
-                <div class="form-group">
-                    <label>From (Giver):</label>
-                    <select id="editDebtFrom">
-                        <option>Vihandu</option>
-                        <option>Tharusha</option>
-                        <option>Charith</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>To (Receiver):</label>
-                    <select id="editDebtTo">
-                        <option>Vihandu</option>
-                        <option>Tharusha</option>
-                        <option>Charith</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Amount (LKR):</label>
-                    <input type="number" id="editDebtAmount" step="0.01">
-                </div>
-
-                <div class="form-group">
-                    <label>Description:</label>
-                    <input type="text" id="editDebtDescription">
+            <div class="form-group" id="editPeopleSection">
+                <label>People Involved:</label>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" class="edit-person-check" value="Vihandu">
+                        Vihandu
+                    </label>
+                    <label>
+                        <input type="checkbox" class="edit-person-check" value="Tharusha">
+                        Tharusha
+                    </label>
+                    <label>
+                        <input type="checkbox" class="edit-person-check" value="Charith">
+                        Charith
+                    </label>
                 </div>
             </div>
 
@@ -751,16 +600,13 @@ function doPost(e) {
     <script>
         const people = ["Vihandu", "Tharusha", "Charith"];
         let expenses = [];
-        let debts = [];
         let currentFilter = 'today';
         let editingIndex = -1;
-        let editingType = ''; // 'expense' or 'debt'
         let sheetUrl = '';
         let isConnected = false;
 
         // Set today's date
         document.getElementById('expenseDate').valueAsDate = new Date();
-        document.getElementById('debtDate').valueAsDate = new Date();
 
         // Load saved sheet URL
         loadSheetUrl();
@@ -856,42 +702,12 @@ function doPost(e) {
             }
 
             try {
-                // Load expenses
-                const expResponse = await fetch(sheetUrl + '?type=expenses');
-                if (expResponse.ok) {
-                    const expData = await expResponse.json();
-                    expenses = Array.isArray(expData) ? expData : [];
-                } else {
-                    expenses = [];
-                }
-                
-                // Load debts
-                const debtResponse = await fetch(sheetUrl + '?type=debts');
-                if (debtResponse.ok) {
-                    const debtData = await debtResponse.json();
-                    debts = Array.isArray(debtData) ? debtData : [];
-                } else {
-                    debts = [];
-                }
-                
-                console.log('Loaded expenses:', expenses.length);
-                console.log('Loaded debts:', debts.length);
-                
-                updateDisplay();
+                const response = await fetch(sheetUrl);
+                const data = await response.json();
+                expenses = data;
+                refreshData();
             } catch (error) {
                 console.error('Error loading from sheet:', error);
-                // Try loading expenses only (for backward compatibility)
-                try {
-                    const response = await fetch(sheetUrl);
-                    const data = await response.json();
-                    expenses = Array.isArray(data) ? data : [];
-                    debts = [];
-                    updateDisplay();
-                } catch (e) {
-                    console.error('Error:', e);
-                    expenses = [];
-                    debts = [];
-                }
             }
         }
 
@@ -926,76 +742,12 @@ function doPost(e) {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'update',
-                        expenses: expenses,
-                        debts: debts
+                        expenses: expenses
                     })
                 });
                 return response.ok;
             } catch (error) {
                 console.error('Error updating sheet:', error);
-                return false;
-            }
-        }
-
-        async function addDebt() {
-            const date = document.getElementById('debtDate').value;
-            const from = document.getElementById('debtFrom').value;
-            const to = document.getElementById('debtTo').value;
-            const amount = parseFloat(document.getElementById('debtAmount').value);
-            const description = document.getElementById('debtDescription').value || "Money transfer";
-
-            if (!date || !amount || amount <= 0) {
-                alert("Please fill in all required fields!");
-                return;
-            }
-
-            if (from === to) {
-                alert("Cannot record debt to the same person!");
-                return;
-            }
-
-            const debt = {
-                date: date,
-                from: from,
-                to: to,
-                amount: amount,
-                description: description
-            };
-
-            debts.push(debt);
-            
-            if (isConnected) {
-                const success = await saveDebtToSheet(debt);
-                if (!success) {
-                    alert('Failed to save to Google Sheets, but saved locally');
-                }
-            }
-
-            updateDisplay();
-
-            // Clear form
-            document.getElementById('debtAmount').value = '';
-            document.getElementById('debtDescription').value = '';
-            
-            alert("Debt recorded successfully!");
-        }
-
-        async function saveDebtToSheet(debt) {
-            if (!isConnected || !sheetUrl) {
-                return false;
-            }
-
-            try {
-                const response = await fetch(sheetUrl, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'addDebt',
-                        ...debt
-                    })
-                });
-                return response.ok;
-            } catch (error) {
-                console.error('Error saving debt to sheet:', error);
                 return false;
             }
         }
@@ -1043,7 +795,7 @@ function doPost(e) {
                 }
             }
 
-            updateDisplay();
+            refreshData();
 
             // Clear form
             document.getElementById('amount').value = '';
@@ -1054,7 +806,6 @@ function doPost(e) {
 
         function editExpense(index) {
             editingIndex = index;
-            editingType = 'expense';
             const exp = expenses[index];
 
             document.getElementById('editDate').value = exp.date;
@@ -1072,98 +823,50 @@ function doPost(e) {
                 cb.checked = exp.peopleInvolved.includes(cb.value);
             });
 
-            // Hide debt fields
-            document.getElementById('editDebtFields').style.display = 'none';
-            document.getElementById('editExpenseFields').style.display = 'block';
-
-            document.getElementById('editModal').style.display = 'block';
-        }
-
-        function editDebt(index) {
-            editingIndex = index;
-            editingType = 'debt';
-            const debt = debts[index];
-
-            document.getElementById('editDebtDate').value = debt.date;
-            document.getElementById('editDebtFrom').value = debt.from;
-            document.getElementById('editDebtTo').value = debt.to;
-            document.getElementById('editDebtAmount').value = debt.amount;
-            document.getElementById('editDebtDescription').value = debt.description;
-
-            // Show debt fields, hide expense fields
-            document.getElementById('editDebtFields').style.display = 'block';
-            document.getElementById('editExpenseFields').style.display = 'none';
-
             document.getElementById('editModal').style.display = 'block';
         }
 
         async function saveEdit() {
-            if (editingType === 'expense') {
-                const date = document.getElementById('editDate').value;
-                const paidBy = document.getElementById('editPaidBy').value;
-                const amount = parseFloat(document.getElementById('editAmount').value);
-                const description = document.getElementById('editDescription').value;
-                const expenseType = document.querySelector('input[name="editExpenseType"]:checked').value;
+            const date = document.getElementById('editDate').value;
+            const paidBy = document.getElementById('editPaidBy').value;
+            const amount = parseFloat(document.getElementById('editAmount').value);
+            const description = document.getElementById('editDescription').value;
+            const expenseType = document.querySelector('input[name="editExpenseType"]:checked').value;
 
-                if (!date || !amount || amount <= 0) {
-                    alert("Please fill in all required fields!");
-                    return;
-                }
-
-                let peopleInvolved = [];
-                if (expenseType === 'shared') {
-                    const checkboxes = document.querySelectorAll('.edit-person-check:checked');
-                    peopleInvolved = Array.from(checkboxes).map(cb => cb.value);
-                    
-                    if (peopleInvolved.length === 0) {
-                        alert("Please select at least one person!");
-                        return;
-                    }
-                } else {
-                    peopleInvolved = [paidBy];
-                }
-
-                expenses[editingIndex] = {
-                    date: date,
-                    paidBy: paidBy,
-                    amount: amount,
-                    description: description,
-                    type: expenseType,
-                    peopleInvolved: peopleInvolved
-                };
-            } else if (editingType === 'debt') {
-                const date = document.getElementById('editDebtDate').value;
-                const from = document.getElementById('editDebtFrom').value;
-                const to = document.getElementById('editDebtTo').value;
-                const amount = parseFloat(document.getElementById('editDebtAmount').value);
-                const description = document.getElementById('editDebtDescription').value;
-
-                if (!date || !amount || amount <= 0) {
-                    alert("Please fill in all required fields!");
-                    return;
-                }
-
-                if (from === to) {
-                    alert("Cannot record debt to the same person!");
-                    return;
-                }
-
-                debts[editingIndex] = {
-                    date: date,
-                    from: from,
-                    to: to,
-                    amount: amount,
-                    description: description
-                };
+            if (!date || !amount || amount <= 0) {
+                alert("Please fill in all required fields!");
+                return;
             }
+
+            let peopleInvolved = [];
+            if (expenseType === 'shared') {
+                const checkboxes = document.querySelectorAll('.edit-person-check:checked');
+                peopleInvolved = Array.from(checkboxes).map(cb => cb.value);
+                
+                if (peopleInvolved.length === 0) {
+                    alert("Please select at least one person!");
+                    return;
+                }
+            } else {
+                peopleInvolved = [paidBy];
+            }
+
+            expenses[editingIndex] = {
+                date: date,
+                paidBy: paidBy,
+                amount: amount,
+                description: description,
+                type: expenseType,
+                peopleInvolved: peopleInvolved
+            };
 
             if (isConnected) {
                 await updateSheet();
             }
 
-            updateDisplay();
+            refreshData();
             closeEditModal();
-            alert("Updated successfully!");
+            alert("Expense updated successfully!");
         }
 
         async function deleteExpense(index) {
@@ -1174,96 +877,33 @@ function doPost(e) {
                     await updateSheet();
                 }
                 
-                updateDisplay();
-            }
-        }
-
-        async function deleteDebt(index) {
-            if (confirm("Are you sure you want to delete this debt record?")) {
-                debts.splice(index, 1);
-                
-                if (isConnected) {
-                    await updateSheet();
-                }
-                
-                updateDisplay();
+                refreshData();
             }
         }
 
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
             editingIndex = -1;
-            editingType = '';
         }
 
-        async function refreshData() {
-            // If connected to sheet, reload from sheet
-            if (isConnected && sheetUrl) {
-                await loadFromSheet();
-            } else {
-                // Just refresh the display with current data
-                updateDisplay();
-            }
-        }
-
-        function updateDisplay() {
+        function refreshData() {
             const tbody = document.getElementById('expenseTableBody');
             tbody.innerHTML = '';
 
-            // Combine expenses and debts, then sort by date
-            const allTransactions = [];
-            
             expenses.forEach((exp, index) => {
-                allTransactions.push({
-                    type: 'expense',
-                    index: index,
-                    date: exp.date,
-                    data: exp
-                });
-            });
-            
-            debts.forEach((debt, index) => {
-                allTransactions.push({
-                    type: 'debt',
-                    index: index,
-                    date: debt.date,
-                    data: debt
-                });
-            });
-            
-            // Sort by date (newest first)
-            allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            allTransactions.forEach(transaction => {
                 const row = tbody.insertRow();
-                
-                if (transaction.type === 'expense') {
-                    const exp = transaction.data;
-                    row.innerHTML = `
-                        <td>${exp.date}</td>
-                        <td><span class="expense-type type-${exp.type}">${exp.type}</span></td>
-                        <td>${exp.paidBy} → ${exp.peopleInvolved.join(', ')}</td>
-                        <td>${exp.amount.toFixed(2)}</td>
-                        <td>${exp.description}</td>
-                        <td>
-                            <button class="btn-warning btn-small" onclick="editExpense(${transaction.index})">Edit</button>
-                            <button class="btn-danger btn-small" onclick="deleteExpense(${transaction.index})">Delete</button>
-                        </td>
-                    `;
-                } else {
-                    const debt = transaction.data;
-                    row.innerHTML = `
-                        <td>${debt.date}</td>
-                        <td><span class="expense-type" style="background: #fff3cd; color: #856404;">debt</span></td>
-                        <td>${debt.from} gave → ${debt.to}</td>
-                        <td>${debt.amount.toFixed(2)}</td>
-                        <td>${debt.description}</td>
-                        <td>
-                            <button class="btn-warning btn-small" onclick="editDebt(${transaction.index})">Edit</button>
-                            <button class="btn-danger btn-small" onclick="deleteDebt(${transaction.index})">Delete</button>
-                        </td>
-                    `;
-                }
+                row.innerHTML = `
+                    <td>${exp.date}</td>
+                    <td>${exp.paidBy}</td>
+                    <td>${exp.amount.toFixed(2)}</td>
+                    <td>${exp.description}</td>
+                    <td><span class="expense-type type-${exp.type}">${exp.type}</span></td>
+                    <td>${exp.peopleInvolved.join(', ')}</td>
+                    <td>
+                        <button class="btn-warning btn-small" onclick="editExpense(${index})">Edit</button>
+                        <button class="btn-danger btn-small" onclick="deleteExpense(${index})">Delete</button>
+                    </td>
+                `;
             });
 
             updateSummary(currentFilter);
@@ -1327,19 +967,6 @@ function doPost(e) {
                 }
             });
 
-            // Add direct debts to balances
-            const filteredDebts = debts.filter(debt => {
-                if (filter === 'today') return debt.date === today;
-                if (filter === 'month') return debt.date.startsWith(currentMonth);
-                return true;
-            });
-
-            filteredDebts.forEach(debt => {
-                // "from" gave money to "to", so "to" owes "from"
-                balances[debt.to][debt.from] += debt.amount;
-                balances[debt.from][debt.to] -= debt.amount;
-            });
-
             // Display summary
             const periodText = filter === 'today' ? 'Today' : 
                               filter === 'month' ? 'This Month' : 'All Time';
@@ -1361,15 +988,6 @@ function doPost(e) {
                 summary += `  ${person}: ${personal[person].toFixed(2)} LKR\n`;
             });
 
-            summary += `\nDirect Debts/Payments:\n`;
-            if (filteredDebts.length > 0) {
-                filteredDebts.forEach(debt => {
-                    summary += `  ${debt.from} gave ${debt.to}: ${debt.amount.toFixed(2)} LKR (${debt.description})\n`;
-                });
-            } else {
-                summary += `  No direct debts recorded\n`;
-            }
-
             summary += `\nSettlements Needed:\n`;
             let hasSettlements = false;
             people.forEach(person => {
@@ -1388,55 +1006,15 @@ function doPost(e) {
             document.getElementById('summaryBox').textContent = summary;
         }
 
-        async function testConnection() {
-            if (!isConnected || !sheetUrl) {
-                alert('Not connected to Google Sheets!');
-                return;
-            }
-
-            let message = 'Connection Test Results:\n\n';
-
-            try {
-                // Test expenses
-                const expResponse = await fetch(sheetUrl + '?type=expenses');
-                message += `Expenses Sheet: ${expResponse.ok ? '✅ OK' : '❌ Failed'}\n`;
-                if (expResponse.ok) {
-                    const expData = await expResponse.json();
-                    message += `  - Found ${expData.length} expenses\n`;
-                }
-            } catch (error) {
-                message += `Expenses Sheet: ❌ Error - ${error.message}\n`;
-            }
-
-            try {
-                // Test debts
-                const debtResponse = await fetch(sheetUrl + '?type=debts');
-                message += `Debts Sheet: ${debtResponse.ok ? '✅ OK' : '❌ Failed'}\n`;
-                if (debtResponse.ok) {
-                    const debtData = await debtResponse.json();
-                    message += `  - Found ${debtData.length} debts\n`;
-                }
-            } catch (error) {
-                message += `Debts Sheet: ❌ Error - ${error.message}\n`;
-            }
-
-            message += `\nCurrent data in app:\n`;
-            message += `- Expenses: ${expenses.length}\n`;
-            message += `- Debts: ${debts.length}`;
-
-            alert(message);
-        }
-
         async function clearAllData() {
             if (confirm("Are you sure you want to clear all data? This cannot be undone!")) {
                 expenses = [];
-                debts = [];
                 
                 if (isConnected) {
                     await updateSheet();
                 }
                 
-                updateDisplay();
+                refreshData();
                 alert("All data cleared!");
             }
         }
